@@ -1,0 +1,14 @@
+{
+  "name": "见字如面 · 小孟 & 琪琪",
+  "short_name": "见字如面",
+  "description": "我们的一点一滴，都写在这里。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f5ef",
+  "theme_color": "#f7f5ef",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

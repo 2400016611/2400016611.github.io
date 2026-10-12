@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="我们的一点一滴，都写在这里。">
+<meta name="theme-color" content="#f7f5ef">
+<title>照片墙 · 见字如面</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://2400016611.github.io/photos.html">
+<meta property="og:title" content="见字如面 · 小孟 &amp; 琪琪">
+<meta property="og:description" content="我们的一点一滴，都写在这里。">
+<meta property="og:image" content="https://2400016611.github.io/assets/share.jpg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wide">
+
+  <div class="top">
+    <span class="mark">小孟 <em>&amp;</em> 琪琪</span>
+    <nav class="nav">
+      <a href="index.html">首页</a>
+      <a href="timeline.html">时间线</a>
+      <a href="photos.html" aria-current="page">照片墙</a>
+      <button class="theme-toggle" type="button">夜读</button>
+    </nav>
+  </div>
+
+  <div class="filters" id="filters">
+    <button type="button" data-group="all" aria-pressed="true">全部</button>
+    <button type="button" data-group="us" aria-pressed="false">我们的日常</button>
+    <button type="button" data-group="her" aria-pressed="false">她</button>
+    <button type="button" data-group="moving" aria-pressed="false">会动的</button>
+    <button class="random-btn" style="margin-left:auto" data-random type="button">翻一张回忆</button>
+    <button class="upload-btn" id="upload-btn" type="button">上传照片</button>
+    <input type="file" id="upload-input" accept="image/*" multiple hidden>
+  </div>
+
+  <div class="count" id="count"></div>
+  <div class="masonry" id="gallery"></div>
+
+  <div class="foot">
+    <span>点开看大图，← → 翻页，Esc 退出</span>
+    <span>视频是转成 H.264 之后的版本，手机里还留着原始文件</span>
+  </div>
+</div>
+
+<script src="data/media.js"></script>
+<script src="data/content.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

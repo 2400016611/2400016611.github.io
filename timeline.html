@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="我们的一点一滴，都写在这里。">
+<meta name="theme-color" content="#f7f5ef">
+<title>时间线 · 见字如面</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://2400016611.github.io/timeline.html">
+<meta property="og:title" content="见字如面 · 小孟 &amp; 琪琪">
+<meta property="og:description" content="我们的一点一滴，都写在这里。">
+<meta property="og:image" content="https://2400016611.github.io/assets/share.jpg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <span class="mark">小孟 <em>&amp;</em> 琪琪</span>
+    <nav class="nav">
+      <a href="index.html">首页</a>
+      <a href="timeline.html" aria-current="page">时间线</a>
+      <a href="photos.html">照片墙</a>
+      <button class="theme-toggle" type="button">夜读</button>
+    </nav>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="counter">
+    <span class="word">在一起</span>
+    <span class="big" id="counter-days">0</span>
+    <span class="unit">天</span>
+    <span class="seg" id="counter-hh">00</span><span class="unit">小时</span>
+    <span class="seg" id="counter-mm">00</span><span class="unit">分</span>
+    <span class="seg" id="counter-ss">00</span><span class="unit">秒</span>
+    <span class="next" id="counter-next"></span>
+  </div>
+
+  <div class="distance" id="distance"></div>
+
+  <section class="section" aria-label="时间线">
+    <div class="her-head">
+      <h2>时间线</h2>
+      <span class="who">从第一次见面，到今天</span>
+    </div>
+    <div id="timeline-page"></div>
+  </section>
+
+  <div id="letters"></div>
+
+  <section class="hand" id="hand" aria-label="手写的"></section>
+
+  <div class="foot">
+    <span>见字如面 · L &amp; M</span>
+    <span>这些日子，都还没过完</span>
+  </div>
+</div>
+
+<script src="data/media.js"></script>
+<script src="data/content.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

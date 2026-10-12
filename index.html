@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="我们的一点一滴，都写在这里。">
+<meta name="theme-color" content="#f7f5ef">
+<title>见字如面 · 小孟 &amp; 琪琪</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://2400016611.github.io/">
+<meta property="og:title" content="见字如面 · 小孟 &amp; 琪琪">
+<meta property="og:description" content="我们的一点一滴，都写在这里。">
+<meta property="og:image" content="https://2400016611.github.io/assets/share.jpg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="bg" id="bg" aria-hidden="true"></div>
+
+<div class="wrap">
+
+  <div class="top">
+    <span class="mark">小孟 <em>&amp;</em> 琪琪</span>
+    <nav class="nav">
+      <a href="index.html" aria-current="page">首页</a>
+      <a href="timeline.html">时间线</a>
+      <a href="photos.html">照片墙</a>
+      <button class="theme-toggle" type="button">夜读</button>
+    </nav>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="counter">
+    <span class="word">在一起</span>
+    <span class="big" id="counter-days">0</span>
+    <span class="unit">天</span>
+    <span class="seg" id="counter-hh">00</span><span class="unit">小时</span>
+    <span class="seg" id="counter-mm">00</span><span class="unit">分</span>
+    <span class="seg" id="counter-ss">00</span><span class="unit">秒</span>
+    <span class="next" id="counter-next"></span>
+  </div>
+
+  <div class="distance" id="distance"></div>
+
+  <section class="year" aria-label="这一年">
+    <div class="year-grid" id="year-grid"></div>
+    <div class="year-side">
+      <div class="year-title">这一年</div>
+      <div class="legend">
+        <span><i class="letter"></i>写了信</span>
+        <span><i class="met"></i>见面的日子</span>
+        <span><i class="blank"></i>空着</span>
+      </div>
+      <div class="readout" id="readout">点任意一天，看那天发生了什么</div>
+    </div>
+  </section>
+
+  <div class="invite">
+    <span id="invite-text">今天还没有写。</span>
+    <button class="go" id="note-open" type="button">写一句</button>
+  </div>
+  <div class="notebox" id="notebox" hidden>
+    <textarea id="note-input" rows="3" maxlength="200" placeholder="写一句今天想说的话……"></textarea>
+    <div class="note-actions">
+      <span class="note-hint">只保存在这台设备上，刷新也不会丢</span>
+      <button id="note-save" type="button">存下来</button>
+    </div>
+  </div>
+  <div class="notes" id="notes"></div>
+
+  <div id="letters"></div>
+
+  <section class="hand" id="hand" aria-label="手写的"></section>
+
+  <section class="her" aria-label="她">
+    <div class="her-head">
+      <h2>她</h2>
+      <span class="who">
+        <button class="random-btn" data-random type="button">翻一张回忆</button>
+        <a href="photos.html#her">看全部 →</a>
+      </span>
+    </div>
+    <div class="her-grid" id="her-grid"></div>
+  </section>
+
+  <div class="foot">
+    <span>见字如面 · L &amp; M</span>
+    <span>这个站只有我们知道，链接不要发给别人</span>
+  </div>
+</div>
+
+<script src="data/media.js"></script>
+<script src="data/content.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
