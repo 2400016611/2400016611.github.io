@@ -190,7 +190,7 @@ button {
 .dot.blankspace { background: none; }
 .dot.blank { background: var(--line); opacity: .55; }
 .dot.none { background: none; box-shadow: inset 0 0 0 1px var(--line); opacity: .3; }
-.dot.letter { background: var(--ink); opacity: .45; }
+.dot.wrote { background: var(--ink); opacity: .45; }
 .dot.met { background: var(--mark); }
 .dot.today { background: none; box-shadow: inset 0 0 0 2px var(--accent); }
 .dot.picked { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -199,7 +199,7 @@ button {
 .legend { margin-top: 10px; font-size: 11.5px; line-height: 2; color: var(--ink-2); }
 .legend span { display: flex; align-items: center; gap: 7px; }
 .legend i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
-.legend i.letter { background: var(--ink); opacity: .45; }
+.legend i.wrote { background: var(--ink); opacity: .45; }
 .legend i.met { background: var(--mark); }
 .legend i.blank { box-shadow: inset 0 0 0 1px var(--line); }
 .readout { margin-top: auto; padding-top: 10px; font-size: 12.5px; color: var(--accent); }
@@ -501,3 +501,240 @@ button {
   z-index: 2;
 }
 .lightbox .save:hover { border: 1px solid #e9e7e1; }
+
+/* ================================================================
+   接上后端之后多出来的界面：登录、写信、上传、设置
+   ================================================================ */
+
+/* ---------------- 按钮 ---------------- */
+.primary, .ghost, .danger {
+  font-size: 13px;
+  border-radius: 999px;
+  padding: 6px 16px;
+  border: 1px solid transparent;
+}
+.primary { background: var(--accent); color: var(--paper); }
+.primary:hover { opacity: .9; }
+.primary:disabled { opacity: .45; cursor: default; }
+.ghost { border-color: var(--line); color: var(--ink-2); }
+.ghost:hover { color: var(--ink); border-color: var(--ink-2); }
+.danger { border-color: var(--line); color: var(--mark); }
+.danger:hover { border-color: var(--mark); }
+.mini {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  color: var(--ink-2);
+  border-radius: 0;
+}
+.mini.danger { color: var(--mark); }
+
+/* ---------------- 表单 ---------------- */
+.form { display: grid; gap: 14px; }
+.row-form { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field > span { font-size: 11.5px; color: var(--ink-2); letter-spacing: .02em; }
+.field input, .field select, .field textarea {
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 7px 9px;
+}
+.field textarea { font-family: var(--serif); font-size: 15.5px; line-height: 1.85; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 1px solid var(--accent); }
+.field.block { margin-top: 16px; }
+.field.wide { grid-column: 1 / -1; }
+.check { flex-direction: row; align-items: center; gap: 8px; }
+.check input { width: auto; }
+.check span { font-size: 12.5px; color: var(--ink-2); }
+.actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+.status-text { font-size: 12px; color: var(--ink-2); }
+.pane { padding-bottom: 30px; }
+.pane-title { font-family: var(--serif); font-size: 17px; font-weight: 600; margin: 28px 0 4px; }
+.pane-hint { font-size: 12.5px; color: var(--ink-2); margin: 0 0 10px; }
+.tabs { display: flex; gap: 18px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 20px; }
+.tabs button { font-size: 13px; color: var(--ink-2); }
+.tabs button.on { color: var(--ink); border-bottom: 1px solid var(--accent); }
+
+/* ---------------- 挑素材 ---------------- */
+.picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper-2);
+}
+.pick-tile { position: relative; padding: 0; border: 2px solid transparent; border-radius: 2px; overflow: hidden; line-height: 0; }
+.pick-tile img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--paper); }
+.pick-tile.on { border-color: var(--accent); }
+.pick-tile .tag { position: absolute; left: 3px; bottom: 3px; font-size: 9px; color: #fff; background: rgba(0, 0, 0, .5); border-radius: 2px; padding: 0 3px; }
+.picker-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.picker-count { font-size: 11.5px; color: var(--ink-2); margin-left: auto; }
+
+/* ---------------- 上传 ---------------- */
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 26px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  background: var(--paper-2);
+  cursor: pointer;
+}
+.drop.over { border-color: var(--accent); background: var(--paper); }
+.drop strong { font-family: var(--serif); font-size: 15px; font-weight: 600; }
+.drop span { font-size: 11.5px; color: var(--ink-2); max-width: 32em; }
+.upload-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; max-height: 300px; overflow-y: auto; }
+.upload-item { font-size: 12px; }
+.upload-head { display: flex; align-items: baseline; gap: 10px; }
+.upload-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-size { flex: none; font-size: 11px; color: var(--ink-2); }
+.upload-item .bar { height: 3px; margin: 5px 0 3px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.upload-item .bar i { display: block; width: 0; height: 100%; background: var(--accent); transition: width .2s; }
+.upload-item .bar i.done { background: #4c7a52; }
+.upload-item .bar i.failed { background: var(--mark); }
+.upload-status { font-size: 11px; color: var(--ink-2); }
+.upload-status .warn { color: var(--mark); }
+
+/* ---------------- 小列表（这一年 / 首页的碎碎念） ---------------- */
+.rows { margin-top: 10px; }
+.row { display: flex; align-items: baseline; gap: 12px; padding: 7px 2px; border-bottom: 1px dashed var(--line); font-size: 13px; }
+.row-date { flex: none; font-family: var(--hand); font-size: 13px; color: var(--accent); }
+.row-tag { flex: none; font-size: 10.5px; border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; color: var(--ink-2); }
+.row-tag.met { color: var(--mark); border-color: var(--mark); }
+.row-text { flex: 1; min-width: 0; font-family: var(--serif); }
+.row button { flex: none; margin-left: auto; }
+.note-author { flex: none; font-size: 11px; color: var(--ink-2); }
+
+/* ---------------- 信的编辑按钮 / 选择作者 ---------------- */
+.letter-tools { display: flex; gap: 12px; }
+.who-pick { display: flex; gap: 6px; }
+.who-pick button { font-size: 12.5px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.who-pick button.on { color: var(--paper); background: var(--accent); border-color: var(--accent); }
+.hand-fig { cursor: zoom-in; }
+
+/* ---------------- 弹窗 ---------------- */
+html.modal-open { overflow: hidden; }
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(20, 22, 26, .5);
+  backdrop-filter: blur(2px);
+}
+.modal.on { display: flex; }
+.modal-card {
+  position: relative;
+  width: min(580px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 24px 22px 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+}
+.modal-x { position: absolute; top: 6px; right: 12px; font-size: 22px; color: var(--ink-2); }
+.modal-title { font-family: var(--serif); font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+.modal-text { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; }
+.modal-hint { font-size: 11.5px; color: var(--ink-2); margin: 10px 0 0; min-height: 1.2em; }
+.modal-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+/* ---------------- 提示条 ---------------- */
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.toast {
+  font-size: 13px;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 999px;
+  padding: 7px 18px;
+  box-shadow: var(--shadow);
+  transition: opacity .35s, transform .35s;
+}
+.toast.bad { background: var(--mark); }
+.toast.gone { opacity: 0; transform: translateY(6px); }
+
+/* ---------------- 右上角账号 ---------------- */
+.account { position: relative; display: inline-flex; }
+.account-btn { font-size: 13px; color: var(--ink-2); }
+.account-btn.on { color: var(--ink); }
+.account-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 128px;
+  padding: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  box-shadow: var(--shadow);
+}
+.account-menu a, .account-menu button { display: block; padding: 6px 10px; font-size: 13px; color: var(--ink-2); text-align: left; border-radius: 2px; }
+.account-menu a:hover, .account-menu button:hover { background: var(--paper-2); color: var(--ink); border-bottom: 0; }
+
+/* ---------------- 「后端还没接上」的那条提醒 ---------------- */
+.backend-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+.backend-note .backend-x { margin-left: auto; font-size: 11.5px; color: var(--accent); border-bottom: 1px dotted currentColor; }
+
+/* ---------------- 没登录时的挡板 ---------------- */
+.gate { padding: 60px 0; text-align: center; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.gate p { font-family: var(--serif); font-size: 17px; }
+.gate .gate-hint { font-family: var(--sans); font-size: 12px; color: var(--ink-2); }
+
+/* ---------------- 灯箱上多出来的收藏 / 删除 ---------------- */
+.lightbox .lb-tools { position: absolute; bottom: 56px; left: 0; right: 0; z-index: 3; display: flex; justify-content: center; gap: 10px; }
+.lightbox .lb-tools .save { position: static; top: auto; left: auto; }
+.lightbox .lb-tools button { font-size: 12.5px; color: #e9e7e1; border: 1px solid rgba(233, 231, 225, .4); border-radius: 999px; padding: 4px 14px; }
+.lightbox .lb-tools button:hover { border-color: #e9e7e1; }
+.lightbox .lb-tools button.danger { color: #e9a99b; }
+
+/* ---------------- 照片墙上的收藏小星 ---------------- */
+.tile .tag.star { top: 6px; right: 6px; bottom: auto; left: auto; font-size: 14px; color: var(--mark); background: none; }
+
+@media (max-width: 720px) {
+  .modal-card { padding: 20px 16px 16px; }
+  .picker { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); max-height: 240px; }
+  .tabs { gap: 14px; }
+}

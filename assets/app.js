@@ -1,9 +1,12 @@
-/* 见字如面 —— 页面逻辑（纯静态，不需要服务器） */
+/* 见字如面 —— 页面逻辑
+ * 数据都从 Store 来（assets/store.js）：能连上后端就用后端的，连不上就用静态内容。
+ */
 (function () {
   "use strict";
 
+  // 这两个会在 Store 读完数据之后被换成后端的版本
   var C = window.SITE_CONTENT || {};
-  var M = window.SITE_MEDIA || { photos: [], videos: [] };
+  var M = window.SITE_MEDIA || { photos: [], videos: [], words: [] };
   var MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
   function $(sel, root) { return (root || document).querySelector(sel); }
@@ -13,6 +16,13 @@
     if (text != null) node.textContent = text;
     return node;
   }
+  function clear(node) {
+    if (node) node.innerHTML = "";
+    return node;
+  }
+  function sameKey(item, slug) {
+    return item && (item.key === slug || item.slug === slug);
+  }
   function parseDate(str) {
     var p = String(str).split("-");
     return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
@@ -21,36 +31,26 @@
   function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
   function midnight(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
   function photoOf(slug) {
-    for (var i = 0; i < M.photos.length; i++) if (M.photos[i].slug === slug) return M.photos[i];
+    for (var i = 0; i < M.photos.length; i++) if (sameKey(M.photos[i], slug)) return M.photos[i];
     return null;
   }
   function videoOf(slug) {
-    for (var i = 0; i < M.videos.length; i++) if (M.videos[i].slug === slug) return M.videos[i];
+    for (var i = 0; i < M.videos.length; i++) if (sameKey(M.videos[i], slug)) return M.videos[i];
     return null;
   }
+  function wordOf(slug) {
+    var list = M.words || [];
+    for (var i = 0; i < list.length; i++) if (sameKey(list[i], slug)) return list[i];
+    return null;
+  }
+  // bundle 素材是站内相对路径，网页传的是 Storage 的公开地址，这里统一处理
   function photoURL(slug, kind) {
-    return "media/photos/" + (kind === "full" ? "full" : "thumb") + "/" + slug + ".jpg";
+    var photo = photoOf(slug);
+    if (!photo) return "";
+    return kind === "full" ? photo.full || photo.thumb : photo.thumb || photo.full;
   }
   function note(store, slug, fallback) {
     return (store && store[slug]) || fallback || "";
-  }
-
-  /* ---------------- 明暗 ---------------- */
-  function initTheme() {
-    var saved = null;
-    try { saved = localStorage.getItem("theme"); } catch (e) { saved = null; }
-    var dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-    var btn = $(".theme-toggle");
-    if (!btn) return;
-    btn.textContent = dark ? "日间" : "夜读";
-    btn.addEventListener("click", function () {
-      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
-      var next = isDark ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      btn.textContent = next === "dark" ? "日间" : "夜读";
-      try { localStorage.setItem("theme", next); } catch (e) { /* 忽略 */ }
-    });
   }
 
   /* ---------------- 状态行 ---------------- */
@@ -76,6 +76,7 @@
   }
 
   /* ---------------- 实时计时 + 下一个纪念日 ---------------- */
+  var tickerOn = false;
   function startTicker() {
     var big = $("#counter-days");
     if (!big) return;
@@ -83,11 +84,11 @@
     var mm = $("#counter-mm");
     var ss = $("#counter-ss");
     var nextEl = $("#counter-next");
-    var start = midnight(parseDate(C.start));
     var lastSecond = -1;
 
     function two(n) { return (n < 10 ? "0" : "") + n; }
     function nextMilestone() {
+      var start = midnight(parseDate(C.start));
       var today = midnight(new Date());
       var targets = [100, 200, 300, 365, 500, 730];
       for (var i = 0; i < targets.length; i++) {
@@ -101,6 +102,7 @@
     }
 
     function render(now) {
+      var start = midnight(parseDate(C.start));
       var total = Math.floor((midnight(now) - start) / 1000);
       var days = Math.floor(total / 86400);
       var rest = total - days * 86400;
@@ -125,6 +127,8 @@
       nextEl.textContent = label;
     }
     render(new Date());
+    if (tickerOn) return; // 循环只开一次，之后每次重跑只刷新数字
+    tickerOn = true;
     requestAnimationFrame(frame);
     setInterval(function () { render(new Date()); }, 1000);
     window.addEventListener("focus", function () { render(new Date()); });
@@ -148,6 +152,7 @@
   function renderMilestones(lightbox, containerId) {
     var box = $("#" + (containerId || "milestones"));
     if (!box) return;
+    clear(box);
     var list = el("ul", "timeline");
     (C.milestones || []).forEach(function (m) {
       var li = el("li", "tl-item");
@@ -192,10 +197,12 @@
   function startBackground() {
     var bg = $("#bg");
     if (!bg) return;
+    if (bg.getAttribute("data-on")) return; // 只初始化一次，图片池每轮现算
     var pool = M.photos.filter(function (p) {
       return p.group === "us" && Math.min(p.w, p.h) >= 1000;
     });
     if (!pool.length) return;
+    bg.setAttribute("data-on", "1");
 
     if (pool.length === 1) {
       var only = el("img");
@@ -231,6 +238,7 @@
     var grid = $("#year-grid");
     var readout = $("#readout");
     if (!grid) return;
+    clear(grid);
 
     var today = new Date();
     var year = today.getFullYear();
@@ -278,7 +286,9 @@
           dot.classList.add("met");
           text += label[key] || "我们见面了";
         } else if (marks[key] === "letter") {
-          dot.classList.add("letter");
+          // 注意：类名不能叫 letter —— 那会和信片的 .letter 撞上，
+          // 把圆点撑成一条竖条（.letter 上有 padding）。
+          dot.classList.add("wrote");
           text += label[key] || "这天写了信";
         } else if (d === today.getDate() && m === today.getMonth() + 1) {
           dot.classList.add("today");
@@ -319,13 +329,24 @@
     var fig = el("figure", "print " + (tilt ? "tilt-l" : "tilt-r"));
     var box = el("span", "play-badge");
     var node = document.createElement("video");
-    node.src = video.loop || video.src_mp4;
     node.poster = video.poster;
     node.muted = true;
-    node.loop = true;
-    node.autoplay = true;
     node.playsInline = true;
     node.setAttribute("playsinline", "");
+    if (video.loop) {
+      // 仓库里自带静音小循环：在信里就轻轻动着，点开才是带声音的完整版
+      node.src = video.loop;
+      node.loop = true;
+      node.autoplay = true;
+    } else {
+      // 网页上传的视频不做自动播放：只显示封面，点开才拉流
+      node.preload = "none";
+      box.classList.add("still");
+      if (!video.poster) {
+        node.src = video.src_mp4;
+        node.preload = "metadata";
+      }
+    }
     box.appendChild(node);
     fig.appendChild(box);
     if (noteText) fig.appendChild(el("figcaption", null, noteText));
@@ -340,13 +361,35 @@
   function renderLetters(lightbox) {
     var list = $("#letters");
     if (!list) return;
+    clear(list);
 
     (C.letters || []).forEach(function (letter) {
       var art = el("article", "letter");
+      art.setAttribute("data-letter", letter.id || letter.legacyId || "");
       var head = el("div", "letter-head");
       head.appendChild(el("span", "date", letter.dateText));
       if (letter.title) head.appendChild(el("span", "letter-title", letter.title));
       head.appendChild(el("span", "who", letter.author + " 写"));
+      if (Store.state.signedIn && letter.id) {
+        var tools = el("span", "letter-tools");
+        var edit = el("a", "mini", "编辑");
+        edit.href = "write.html?id=" + encodeURIComponent(letter.id);
+        var del = el("button", "mini danger", "删除");
+        del.type = "button";
+        del.addEventListener("click", function () {
+          UI.confirm("删掉《" + (letter.title || letter.dateText) + "》这封信？", "删除").then(function (ok) {
+            if (!ok) return;
+            Store.deleteLetter(letter.id).then(function () {
+              UI.toast("删掉了");
+            }).catch(function (err) {
+              UI.toast(err.message || String(err), "bad");
+            });
+          });
+        });
+        tools.appendChild(edit);
+        tools.appendChild(del);
+        head.appendChild(tools);
+      }
       art.appendChild(head);
 
       var prints = el("div", "prints");
@@ -354,14 +397,14 @@
         var photo = photoOf(slug);
         if (!photo) return;
         prints.appendChild(printFigure(photo, i % 2 === 0, note(C.photoNotes, slug), function () {
-          lightbox.open(photoURL(slug, "full"), note(C.photoNotes, slug));
+          lightbox.open(photoURL(slug, "full"), note(C.photoNotes, slug), photo);
         }));
       });
       (letter.videos || []).forEach(function (slug) {
         var video = videoOf(slug);
         if (!video) return;
         prints.appendChild(videoFigure(video, (letter.photos || []).length % 2 === 1, note(C.videoNotes, slug), function () {
-          lightbox.openVideo(video.src_mp4, note(C.videoNotes, slug));
+          lightbox.openVideo(video.src_mp4, note(C.videoNotes, slug), video);
         }));
       });
       art.appendChild(prints);
@@ -395,6 +438,7 @@
   function renderHer(lightbox) {
     var box = $("#her-grid");
     if (!box) return;
+    clear(box);
     (C.herPicks || []).forEach(function (slug) {
       var photo = photoOf(slug);
       if (!photo) return;
@@ -403,7 +447,7 @@
       img.alt = "琪琪";
       img.loading = "lazy";
       img.addEventListener("click", function () {
-        lightbox.open(photoURL(slug, "full"), note(C.photoNotes, slug, "琪琪"));
+        lightbox.open(photoURL(slug, "full"), note(C.photoNotes, slug, "琪琪"), photo);
       });
       box.appendChild(img);
     });
@@ -413,6 +457,7 @@
   function renderFirstMeeting(lightbox) {
     var box = $("#start");
     if (!box || !C.firstMeeting) return;
+    clear(box);
     var head = el("div", "her-head");
     head.appendChild(el("h2", null, "起点"));
     head.appendChild(el("span", "who", "2026年1月24日 · 第一次见面"));
@@ -421,7 +466,7 @@
     var photo = photoOf(C.firstMeeting.photo);
     if (photo) {
       var fig = printFigure(photo, true, C.firstMeeting.label, function () {
-        lightbox.open(photoURL(photo.slug, "full"), C.firstMeeting.label);
+        lightbox.open(photoURL(C.firstMeeting.photo, "full"), C.firstMeeting.label, photo);
       });
       fig.classList.add("large");
       box.appendChild(fig);
@@ -429,9 +474,10 @@
   }
 
   /* ---------------- 首页「手写的」 ---------------- */
-  function renderHandwritten() {
+  function renderHandwritten(lightbox) {
     var box = $("#hand");
     if (!box || !C.handwritten) return;
+    clear(box);
     var head = el("div", "her-head");
     head.appendChild(el("h2", null, "手写的"));
     head.appendChild(el("span", "who", "字比打字更有温度"));
@@ -439,114 +485,152 @@
 
     var fig = el("figure", "hand-fig");
     var img = el("img");
-    img.src = "media/words/" + C.handwritten.photo + ".jpg";
+    var word = wordOf(C.handwritten.photo);
+    img.src = word ? word.src : "media/words/" + C.handwritten.photo + ".jpg";
     img.alt = C.handwritten.caption;
     img.loading = "lazy";
     fig.appendChild(img);
     fig.appendChild(el("figcaption", null, C.handwritten.caption));
+    fig.addEventListener("click", function () {
+      if (lightbox) lightbox.open(img.src, C.handwritten.caption, word);
+    });
     box.appendChild(fig);
   }
 
   /* ---------------- 照片墙 ---------------- */
+  var gallery = { bound: false, group: "all", lightbox: null };
+
+  function galleryItems() {
+    var list = [];
+    M.photos.forEach(function (photo) {
+      list.push({ kind: "photo", group: photo.group, record: photo });
+    });
+    M.videos.forEach(function (video) {
+      list.push({ kind: "video", group: "moving", record: video });
+    });
+    return list;
+  }
+
+  function galleryVisible() {
+    return galleryItems().filter(function (item) {
+      if (gallery.group === "all") return true;
+      if (gallery.group === "liked") return !!item.record.favorite;
+      return item.group === gallery.group;
+    });
+  }
+
+  function galleryDraw() {
+    var grid = $("#gallery");
+    if (!grid) return;
+    var countBox = $("#count");
+    var lightbox = gallery.lightbox;
+    var list = galleryVisible();
+    clear(grid);
+    if (countBox) countBox.textContent = "共 " + list.length + " 张";
+
+    list.forEach(function (item, index) {
+      var tile = el("button", "tile");
+      tile.type = "button";
+      var img = el("img");
+      img.loading = "lazy";
+      if (item.kind === "photo") {
+        img.src = item.record.thumb || item.record.full;
+        img.alt = item.group === "her" ? "琪琪" : "我们";
+        img.style.background = item.record.color || "";
+      } else {
+        img.src = item.record.poster || "";
+        img.alt = note(C.videoNotes, item.record.key, "视频");
+      }
+      tile.appendChild(img);
+      if (item.kind === "video") {
+        tile.appendChild(el("span", "tag", "▶ " + Math.round(item.record.seconds || 0) + "s"));
+      }
+      if (item.record.favorite) tile.appendChild(el("span", "tag star", "★"));
+      tile.addEventListener("click", function () {
+        var current = galleryVisible();
+        lightbox.setList(
+          current.map(function (it) {
+            return it.kind === "photo"
+              ? {
+                  url: it.record.full || it.record.thumb,
+                  caption: note(C.photoNotes, it.record.key),
+                  record: it.record
+                }
+              : {
+                  video: it.record.src_mp4,
+                  caption: note(C.videoNotes, it.record.key),
+                  record: it.record
+                };
+          }),
+          index
+        );
+      });
+      grid.appendChild(tile);
+    });
+  }
+
   function renderGallery(lightbox) {
     var grid = $("#gallery");
     if (!grid) return;
-    var filterBox = $("#filters");
-    var countBox = $("#count");
-    var hash = (location.hash || "").replace("#", "");
-    var state = { group: hash === "her" || hash === "us" || hash === "moving" ? hash : "all" };
+    gallery.lightbox = lightbox;
 
-    var items = [];
-    M.photos.forEach(function (photo) {
-      items.push({ kind: "photo", group: photo.group, data: photo, slug: photo.slug });
-    });
-    M.videos.forEach(function (video) {
-      items.push({ kind: "video", group: "moving", data: video, slug: video.slug });
-    });
-    var uploaded = [];
+    if (!gallery.bound) {
+      gallery.bound = true;
+      var hash = (location.hash || "").replace("#", "");
+      if (["her", "us", "moving", "liked"].indexOf(hash) >= 0) gallery.group = hash;
 
-    function visible() {
-      return items.concat(uploaded).filter(function (item) {
-        return state.group === "all" || item.group === state.group;
-      });
-    }
-
-    function draw() {
-      var list = visible();
-      grid.innerHTML = "";
-      if (countBox) countBox.textContent = "共 " + list.length + " 张";
-
-      list.forEach(function (item, index) {
-        var tile = el("button", "tile");
-        tile.type = "button";
-        var img = el("img");
-        img.loading = "lazy";
-        if (item.kind === "photo") {
-          img.src = item.slug ? photoURL(item.slug, "thumb") : item.url;
-          img.alt = item.slug ? (item.data.group === "her" ? "琪琪" : "我们") : "本机预览";
-          img.style.background = item.slug ? (item.data.color || "") : "";
-          if (!item.slug) tile.appendChild(el("span", "tag", "本机预览"));
-        } else {
-          img.src = item.data.poster;
-          img.alt = note(C.videoNotes, item.slug, "视频");
-          tile.appendChild(el("span", "tag", "▶ " + Math.round(item.data.seconds) + "s"));
+      var filterBox = $("#filters");
+      if (filterBox) {
+        // 登录之后多一个「最喜欢」
+        if (!$("button[data-group=liked]", filterBox)) {
+          var liked = el("button", null, "最喜欢");
+          liked.type = "button";
+          liked.dataset.group = "liked";
+          liked.hidden = true;
+          filterBox.insertBefore(liked, $("[data-random]", filterBox));
         }
-        tile.appendChild(img);
-        tile.addEventListener("click", function () {
-          var current = visible();
-          lightbox.setList(current.map(function (it) {
-            return it.kind === "photo"
-              ? { url: it.slug ? photoURL(it.slug, "full") : it.url, caption: it.slug ? note(C.photoNotes, it.slug) : "本机预览 · 刷新会消失" }
-              : { video: it.data.src_mp4, caption: note(C.videoNotes, it.slug) };
-          }), index);
+        filterBox.addEventListener("click", function (event) {
+          var btn = event.target.closest("button[data-group]");
+          if (!btn) return;
+          gallery.group = btn.dataset.group;
+          Array.prototype.forEach.call(filterBox.querySelectorAll("button[data-group]"), function (b) {
+            b.setAttribute("aria-pressed", String(b === btn));
+          });
+          galleryDraw();
         });
-        grid.appendChild(tile);
-      });
-    }
+      }
 
-    var input = $("#upload-input");
-    var btn = $("#upload-btn");
-    if (input && btn) {
-      btn.addEventListener("click", function () { input.click(); });
-      input.addEventListener("change", function () {
-        var files = Array.prototype.slice.call(input.files || []);
-        files.forEach(function (file) {
-          if (!/^image\//.test(file.type)) return;
-          var url = URL.createObjectURL(file);
-          var probe = new Image();
-          probe.onload = function () {
-            uploaded.push({
-              kind: "photo",
-              group: "uploaded",
-              data: { group: "uploaded" },
-              slug: null,
-              url: url,
-              w: probe.naturalWidth,
-              h: probe.naturalHeight
+      var btn = $("#upload-btn");
+      var input = $("#upload-input");
+      if (input) input.parentNode.removeChild(input); // 老的本机预览已经不需要了
+      if (btn) {
+        btn.addEventListener("click", function () {
+          UI.requireLogin("传照片要先登录一下").then(function (ok) {
+            if (!ok) return;
+            Uploader.open({
+              onUploaded: function () {
+                var box = $("#filters");
+                if (box) {
+                  Array.prototype.forEach.call(box.querySelectorAll("button[data-group]"), function (b) {
+                    b.setAttribute("aria-pressed", String(b.dataset.group === "all"));
+                  });
+                }
+                gallery.group = "all";
+                galleryDraw();
+              }
             });
-            draw();
-          };
-          probe.src = url;
+          });
         });
-        input.value = "";
-      });
+      }
     }
 
-    if (filterBox) {
-      Array.prototype.forEach.call(filterBox.querySelectorAll("button[data-group]"), function (b) {
-        b.setAttribute("aria-pressed", String(b.dataset.group === state.group));
-      });
-      filterBox.addEventListener("click", function (event) {
-        var btn = event.target.closest("button[data-group]");
-        if (!btn) return;
-        state.group = btn.dataset.group;
-        Array.prototype.forEach.call(filterBox.querySelectorAll("button"), function (b) {
-          b.setAttribute("aria-pressed", String(b === btn));
-        });
-        draw();
-      });
-    }
-    draw();
+    Array.prototype.forEach.call(document.querySelectorAll("#filters button[data-group]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.group === gallery.group));
+      if (b.dataset.group === "liked") b.hidden = !Store.state.signedIn;
+    });
+    var uploadBtn = $("#upload-btn");
+    if (uploadBtn) uploadBtn.textContent = Store.state.signedIn ? "传照片 / 视频" : "登录后上传";
+    galleryDraw();
   }
 
   /* ---------------- 灯箱 ---------------- */
@@ -556,12 +640,63 @@
       '<button class="prev" type="button" aria-label="上一张">‹</button>' +
       '<button class="close" type="button" aria-label="关闭">×</button>' +
       '<button class="next" type="button" aria-label="下一张">›</button>' +
-      '<div class="caption"></div>';
+      '<div class="lb-bar"><span class="caption"></span><span class="lb-tools"></span></div>';
     document.body.appendChild(box);
     var stage = el("div");
     var caption = $(".caption", box);
+    var toolbar = $(".lb-tools", box);
     var list = [];
     var index = 0;
+
+    var save = el("a", "save", "保存这张");
+    save.setAttribute("download", "");
+    toolbar.appendChild(save);
+
+    // 登录之后，大图上多两个按钮：收藏、删掉
+    function drawTools(item) {
+      Array.prototype.forEach.call(toolbar.querySelectorAll("button"), function (b) {
+        b.parentNode.removeChild(b);
+      });
+      var record = item.record;
+      if (!Store.state.signedIn || !record || !record.id) return;
+
+      var fav = el("button", "mini", record.favorite ? "取消收藏" : "收藏");
+      fav.type = "button";
+      fav.addEventListener("click", function (event) {
+        event.stopPropagation();
+        var next = !record.favorite;
+        Store.updateMedia(record.id, { is_favorite: next })
+          .then(function () {
+            UI.toast(next ? "收藏了" : "取消收藏了", "good");
+            var fresh = freshRecord(record.id);
+            if (fresh) item.record = fresh;
+            drawTools(item);
+          })
+          .catch(function (err) {
+            UI.toast(err.message || String(err), "bad");
+          });
+      });
+      toolbar.insertBefore(fav, save);
+
+      var del = el("button", "mini danger", "删除");
+      del.type = "button";
+      del.addEventListener("click", function (event) {
+        event.stopPropagation();
+        UI.confirm("把这一张删掉？删了就找不回来了。", "删除").then(function (ok) {
+          if (!ok) return;
+          Store.deleteMedia(record).then(function () {
+            UI.toast("删掉了");
+            list.splice(index, 1);
+            if (!list.length) {
+              closeBox();
+              return;
+            }
+            show(index);
+          });
+        });
+      });
+      toolbar.insertBefore(del, save);
+    }
 
     function show(i) {
       if (!list.length) return;
@@ -580,14 +715,18 @@
         img.src = item.url;
         stage.appendChild(img);
       }
-      caption.textContent = [item.caption, list.length > 1 ? (index + 1) + " / " + list.length : ""].filter(Boolean).join("　·　");
+      caption.textContent = [item.caption, list.length > 1 ? (index + 1) + " / " + list.length : ""]
+        .filter(Boolean)
+        .join("　·　");
       save.href = item.video || item.url;
       save.textContent = item.video ? "保存这段视频" : "保存这张";
+      drawTools(item);
     }
 
-    var save = el("a", "save", "保存这张");
-    save.setAttribute("download", "");
-    box.appendChild(save);
+    function closeBox() {
+      box.classList.remove("on");
+      stage.innerHTML = "";
+    }
 
     /* 手机上左右滑动翻页 */
     var touchX = null;
@@ -602,30 +741,29 @@
       show(dx > 0 ? index - 1 : index + 1);
     }, { passive: true });
 
-    box.insertBefore(stage, caption);
-    $(".close", box).addEventListener("click", function () { box.classList.remove("on"); stage.innerHTML = ""; });
+    box.insertBefore(stage, $(".lb-bar", box));
+    $(".close", box).addEventListener("click", closeBox);
     $(".prev", box).addEventListener("click", function (e) { e.stopPropagation(); show(index - 1); });
     $(".next", box).addEventListener("click", function (e) { e.stopPropagation(); show(index + 1); });
     box.addEventListener("click", function (event) {
       if (event.target !== stage && event.target !== box) return;
-      box.classList.remove("on");
-      stage.innerHTML = "";
+      closeBox();
     });
     document.addEventListener("keydown", function (event) {
       if (!box.classList.contains("on")) return;
-      if (event.key === "Escape") { box.classList.remove("on"); stage.innerHTML = ""; }
+      if (event.key === "Escape") closeBox();
       if (event.key === "ArrowLeft") show(index - 1);
       if (event.key === "ArrowRight") show(index + 1);
     });
 
     return {
-      open: function (url, text) {
-        list = [{ url: url, caption: text }];
+      open: function (url, text, record) {
+        list = [{ url: url, caption: text, record: record || null }];
         box.classList.add("on");
         show(0);
       },
-      openVideo: function (src, text) {
-        list = [{ video: src, caption: text }];
+      openVideo: function (src, text, record) {
+        list = [{ video: src, caption: text, record: record || null }];
         box.classList.add("on");
         show(0);
       },
@@ -633,11 +771,19 @@
         list = nextList;
         box.classList.add("on");
         show(start || 0);
-      }
+      },
+      close: closeBox
     };
   }
 
+  function freshRecord(id) {
+    var all = M.photos.concat(M.videos, M.words || []);
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+    return null;
+  }
+
   /* ---------------- 写一句（碎碎念，只存在这台设备上） ---------------- */
+  var notesBound = false;
   function initNotes() {
     var openBtn = $("#note-open");
     var box = $("#notebox");
@@ -646,24 +792,51 @@
     var list = $("#notes");
     if (!openBtn || !box) return;
     var KEY = "suixinian";
-    function load() {
+    function localLoad() {
       try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; }
     }
-    function store(items) {
+    function localStore(items) {
       try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) { /* 忽略 */ }
     }
     function todayLabel() {
       var now = new Date();
       return (now.getMonth() + 1) + "月" + now.getDate() + "日";
     }
+    function labelOf(dateStr) {
+      var p = String(dateStr || "").split("-");
+      return p.length === 3 ? Number(p[1]) + "月" + Number(p[2]) + "日" : dateStr;
+    }
+    function me() {
+      var user = Store.state.user;
+      var name = (user && user.user_metadata && user.user_metadata.display_name) || "";
+      return name.trim() || (user && user.email ? String(user.email).split("@")[0] : "");
+    }
+    // 登录了就用数据库里的（两个人都看得到），没登录就还用本机这份
+    function current() {
+      if (!Store.state.signedIn) return localLoad();
+      return (C.notes || []).map(function (n) {
+        return { id: n.id, date: labelOf(n.date), text: n.body, author: n.author };
+      });
+    }
     function draw() {
-      var items = load();
+      var items = current();
       if (list) {
         list.innerHTML = "";
-        items.slice(0, 5).forEach(function (item) {
+        items.slice(0, 8).forEach(function (item) {
           var row = el("div", "note-row");
           row.appendChild(el("span", "note-date", item.date));
           row.appendChild(el("span", "note-text", item.text));
+          if (item.author) row.appendChild(el("span", "note-author", item.author));
+          if (Store.state.signedIn && item.id) {
+            var del = el("button", "mini danger", "删");
+            del.type = "button";
+            del.addEventListener("click", function () {
+              Store.deleteNote(item.id).catch(function (err) {
+                UI.toast(err.message || String(err), "bad");
+              });
+            });
+            row.appendChild(del);
+          }
           list.appendChild(row);
         });
       }
@@ -671,26 +844,54 @@
       if (inviteText && items.length && items[0].date === todayLabel()) {
         inviteText.textContent = "今天写过了。还想再说一句？";
       }
+      var hint = $(".note-hint");
+      if (hint) {
+        hint.textContent = Store.state.signedIn
+          ? "存下来你们两个都看得到"
+          : "现在只保存在这台设备上，登录之后你们俩都能看到";
+      }
     }
-    openBtn.addEventListener("click", function () {
-      box.hidden = !box.hidden;
-      if (!box.hidden && input) input.focus();
-    });
-    if (saveBtn) saveBtn.addEventListener("click", function () {
-      var text = (input.value || "").trim();
-      if (!text) return;
-      var items = load();
-      items.unshift({ date: todayLabel(), text: text });
-      store(items.slice(0, 50));
-      input.value = "";
-      box.hidden = true;
-      draw();
-    });
+    if (!notesBound) {
+      notesBound = true;
+      openBtn.addEventListener("click", function () {
+        box.hidden = !box.hidden;
+        if (!box.hidden && input) input.focus();
+      });
+      if (saveBtn) {
+        saveBtn.addEventListener("click", function () {
+          var text = (input.value || "").trim();
+          if (!text) return;
+          if (Store.state.signedIn) {
+            saveBtn.disabled = true;
+            Store.addNote(text, me())
+              .then(function () {
+                input.value = "";
+                box.hidden = true;
+                UI.toast("记下了", "good");
+              })
+              .catch(function (err) {
+                UI.toast(err.message || String(err), "bad");
+              })
+              .then(function () {
+                saveBtn.disabled = false;
+              });
+            return;
+          }
+          var items = localLoad();
+          items.unshift({ date: todayLabel(), text: text });
+          localStore(items.slice(0, 50));
+          input.value = "";
+          box.hidden = true;
+          draw();
+        });
+      }
+    }
     draw();
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    var lightbox = createLightbox();
+  var galleryBound = false;
+
+  function renderAll(lightbox) {
     renderStatus();
     startTicker();
     startBackground();
@@ -702,10 +903,27 @@
     renderHer(lightbox);
     initNotes();
     renderFirstMeeting(lightbox);
-    renderHandwritten();
+    renderHandwritten(lightbox);
     renderGallery(lightbox);
-    bindRandom(lightbox);
+    if (!galleryBound) {
+      galleryBound = true;
+      bindRandom(lightbox);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var lightbox = createLightbox();
+    UI.mount();
+    // Store 一开始就备好了静态内容，所以这一遍画不会白屏；后端读回来之后会自动重画
+    C = Store.state.content || C;
+    M = Store.state.media || M;
+    renderAll(lightbox);
+    Store.onChange(function () {
+      C = Store.state.content || C;
+      M = Store.state.media || M;
+      renderAll(lightbox);
+    });
+    Store.init();
   });
 
-  initTheme();
 })();

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="我们的一点一滴，都写在这里。">
+<meta name="theme-color" content="#f7f5ef">
+<title>写一封信 · 见字如面</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body class="is-write">
+<div class="wrap">
+
+  <div class="top">
+    <span class="mark">小孟 <em>&amp;</em> 琪琪</span>
+    <nav class="nav">
+      <a href="index.html">首页</a>
+      <a href="timeline.html">时间线</a>
+      <a href="photos.html">照片墙</a>
+      <button class="theme-toggle" type="button">夜读</button>
+    </nav>
+  </div>
+
+  <div class="gate" id="gate" hidden>
+    <p>写东西要先登录。</p>
+    <button class="primary" id="gate-login" type="button">登录 / 注册</button>
+    <p class="gate-hint" id="gate-hint"></p>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button type="button" data-tab="letter" class="on">写一封信</button>
+    <button type="button" data-tab="notes">碎碎念</button>
+    <button type="button" data-tab="days">这一年</button>
+    <button type="button" data-tab="settings">设置</button>
+  </div>
+
+  <section class="pane" id="pane-letter">
+    <div class="form row-form">
+      <label class="field">
+        <span>哪一天</span>
+        <input type="date" id="letter-date">
+      </label>
+      <label class="field">
+        <span>谁写的</span>
+        <span class="who-pick" id="who-pick">
+          <button type="button" data-who="小孟">小孟</button>
+          <button type="button" data-who="琪琪">琪琪</button>
+        </span>
+      </label>
+      <label class="check field">
+        <input type="checkbox" id="letter-met">
+        <span>这天我们见面了（在「这一年」上标成朱砂色）</span>
+      </label>
+      <label class="check field">
+        <input type="checkbox" id="letter-public">
+        <span>别人也能看这一封（不勾就只有我们俩看得到）</span>
+      </label>
+    </div>
+
+    <label class="field block">
+      <span>标题（可以空着）</span>
+      <input type="text" id="letter-title" placeholder="比如：第一百天">
+    </label>
+
+    <label class="field block">
+      <span>正文（段落之间空一行）</span>
+      <textarea id="letter-body" rows="14" placeholder="见字如面……"></textarea>
+    </label>
+
+    <div class="field block">
+      <span>信里夹的照片和视频</span>
+      <div class="picker" id="picker"></div>
+      <div class="picker-actions">
+        <button class="ghost" id="pick-upload" type="button">传新的进来</button>
+        <button class="ghost" id="pick-clear" type="button">都不夹了</button>
+        <span class="picker-count" id="pick-count"></span>
+      </div>
+    </div>
+
+    <label class="field block">
+      <span>落款</span>
+      <input type="text" id="letter-sign" placeholder="—— 小孟">
+    </label>
+
+    <div class="actions">
+      <button class="primary" id="letter-save" type="button">存下来</button>
+      <button class="ghost" id="letter-reset" type="button">清空重写</button>
+      <button class="danger" id="letter-delete" type="button" hidden>删掉这封信</button>
+      <span class="status-text" id="letter-status"></span>
+    </div>
+  </section>
+
+  <section class="pane" id="pane-notes" hidden>
+    <label class="field block">
+      <span>今天想说什么（一两句就好）</span>
+      <textarea id="note-body" rows="3" maxlength="500" placeholder="写一句今天想说的话……"></textarea>
+    </label>
+    <div class="actions">
+      <button class="primary" id="note-add" type="button">记下来</button>
+      <span class="status-text" id="note-status"></span>
+    </div>
+    <div class="notes" id="note-list"></div>
+  </section>
+
+  <section class="pane" id="pane-days" hidden>
+    <h2 class="pane-title">这一年上的日子</h2>
+    <p class="pane-hint">点亮的点会出现在首页那条日期带上。见面的日子用朱砂，写了信用墨色。</p>
+    <div class="form row-form">
+      <label class="field">
+        <span>日期</span>
+        <input type="date" id="lm-date">
+      </label>
+      <label class="field">
+        <span>是什么日子</span>
+        <select id="lm-kind">
+          <option value="met">见面</option>
+          <option value="letter">写了信</option>
+        </select>
+      </label>
+      <label class="field wide">
+        <span>说明（可以空着）</span>
+        <input type="text" id="lm-label" placeholder="比如：三亚">
+      </label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="lm-add" type="button">点亮这一天</button>
+    </div>
+    <div class="rows" id="lm-list"></div>
+
+    <h2 class="pane-title">时间线上的大事</h2>
+    <div class="form row-form">
+      <label class="field">
+        <span>日期</span>
+        <input type="date" id="ms-date">
+      </label>
+      <label class="field">
+        <span>标题</span>
+        <input type="text" id="ms-title" placeholder="比如：三亚">
+      </label>
+      <label class="field wide">
+        <span>一句话</span>
+        <input type="text" id="ms-note" placeholder="海和沙滩，还有写在沙上的 L &amp; M">
+      </label>
+      <label class="field">
+        <span>配一张照片（可以空着）</span>
+        <select id="ms-photo"></select>
+      </label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="ms-add" type="button">加到时间线</button>
+    </div>
+    <div class="rows" id="ms-list"></div>
+  </section>
+
+  <section class="pane" id="pane-settings" hidden>
+    <div class="form row-form">
+      <label class="field">
+        <span>站名</span>
+        <input type="text" id="st-title">
+      </label>
+      <label class="field">
+        <span>页头左边的名字</span>
+        <input type="text" id="st-him">
+      </label>
+      <label class="field">
+        <span>页头右边的名字</span>
+        <input type="text" id="st-her">
+      </label>
+      <label class="field">
+        <span>在一起的第一天</span>
+        <input type="date" id="st-start">
+      </label>
+      <label class="field">
+        <span>距离怎么写</span>
+        <input type="text" id="st-distance" placeholder="三千公里">
+      </label>
+      <label class="field">
+        <span>距离这头是谁</span>
+        <input type="text" id="st-left">
+      </label>
+      <label class="field">
+        <span>距离那头是谁</span>
+        <input type="text" id="st-right">
+      </label>
+      <label class="field">
+        <span>下次见面的日子（知道再填）</span>
+        <input type="date" id="st-next">
+      </label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="st-save" type="button">保存设置</button>
+      <span class="status-text" id="st-status"></span>
+    </div>
+
+    <h2 class="pane-title" id="pwd-title">改密码</h2>
+    <div class="form row-form">
+      <label class="field">
+        <span>新密码</span>
+        <input type="password" id="pwd-new" autocomplete="new-password">
+      </label>
+      <label class="field">
+        <span>再输一次</span>
+        <input type="password" id="pwd-again" autocomplete="new-password">
+      </label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="pwd-save" type="button">改密码</button>
+      <button class="ghost" id="sign-out" type="button">退出登录</button>
+      <span class="status-text" id="pwd-status"></span>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>见字如面 · L &amp; M</span>
+    <span>写下的东西存在你们自己的数据库里</span>
+  </div>
+</div>
+
+<script src="data/media.js"></script>
+<script src="data/content.js"></script>
+<script src="data/config.js"></script>
+<script src="assets/vendor/supabase.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/upload.js"></script>
+<script src="assets/write.js"></script>
+</body>
+</html>
