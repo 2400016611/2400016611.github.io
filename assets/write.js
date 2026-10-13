@@ -376,6 +376,54 @@
         photoSelect.appendChild(option);
       });
     }
+
+    var anBox = $("#an-list");
+    if (anBox) {
+      anBox.innerHTML = "";
+      var today = new Date();
+      (Store.state.anniversaries || [])
+        .slice()
+        .sort(function (a, b) {
+          return daysTo(nextTime(a, today)) - daysTo(nextTime(b, today));
+        })
+        .forEach(function (item) {
+          var row = h("div", "row");
+          var when = nextTime(item, today);
+          row.appendChild(h("span", "row-date", item.date));
+          row.appendChild(h("span", "row-text", item.title));
+          row.appendChild(
+            h("span", "row-count", daysTo(when) === 0 ? "就是今天" : "还有 " + daysTo(when) + " 天")
+          );
+          var del = h("button", "mini danger", "删");
+          del.type = "button";
+          on(del, "click", function () {
+            Store.deleteAnniversary(item.id).then(function () {
+              UI.toast("删掉了");
+            });
+          });
+          row.appendChild(del);
+          anBox.appendChild(row);
+        });
+      if (!anBox.childNodes.length) anBox.appendChild(h("div", "row", "还没有纪念日。"));
+    }
+  }
+
+  // 每年回来的日子，算下一次是几号
+  function nextTime(item, today) {
+    var p = String(item.date).split("-");
+    var month = Number(p[1]) - 1;
+    var day = Number(p[2]);
+    if (!item.repeat_yearly) return new Date(Number(p[0]), month, day);
+    var thisYear = new Date(today.getFullYear(), month, day);
+    return thisYear < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      ? new Date(today.getFullYear() + 1, month, day)
+      : thisYear;
+  }
+
+  function daysTo(date) {
+    var today = new Date();
+    var a = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return Math.round((date - a) / 86400000);
   }
 
   function bindDays() {
@@ -411,6 +459,22 @@
           setVal("ms-title", "");
           setVal("ms-note", "");
           UI.toast("加上了", "good");
+        })
+        .catch(function (err) {
+          UI.toast(err.message || String(err), "bad");
+        });
+    });
+    on($("#an-add"), "click", function () {
+      var date = val("an-date");
+      var title = val("an-title").trim();
+      if (!date || !title) {
+        UI.toast("日期和名字都要填", "bad");
+        return;
+      }
+      Store.saveAnniversary({ date: date, title: title, repeatYearly: $("#an-repeat").checked })
+        .then(function () {
+          setVal("an-title", "");
+          UI.toast("记下了", "good");
         })
         .catch(function (err) {
           UI.toast(err.message || String(err), "bad");

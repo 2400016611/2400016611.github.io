@@ -154,6 +154,27 @@
       <button class="primary" id="ms-add" type="button">加到时间线</button>
     </div>
     <div class="rows" id="ms-list"></div>
+
+    <h2 class="pane-title">纪念日</h2>
+    <p class="pane-hint">生日、周年这类每年都会回来的日子。</p>
+    <div class="form row-form">
+      <label class="field">
+        <span>日期</span>
+        <input type="date" id="an-date">
+      </label>
+      <label class="field wide">
+        <span>叫什么</span>
+        <input type="text" id="an-title" placeholder="比如：琪琪生日">
+      </label>
+      <label class="check field">
+        <input type="checkbox" id="an-repeat" checked>
+        <span>每年都有</span>
+      </label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="an-add" type="button">记下这一天</button>
+    </div>
+    <div class="rows" id="an-list"></div>
   </section>
 
   <section class="pane" id="pane-settings" hidden>

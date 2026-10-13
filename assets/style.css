@@ -616,6 +616,7 @@ button {
 .row-tag { flex: none; font-size: 10.5px; border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; color: var(--ink-2); }
 .row-tag.met { color: var(--mark); border-color: var(--mark); }
 .row-text { flex: 1; min-width: 0; font-family: var(--serif); }
+.row-count { flex: none; font-size: 11.5px; color: var(--accent); }
 .row button { flex: none; margin-left: auto; }
 .note-author { flex: none; font-size: 11px; color: var(--ink-2); }
 
