@@ -95,6 +95,7 @@ site/
 ├─ write.html          写一封信 / 碎碎念 / 这一年 / 设置
 ├─ assets/
 │   ├─ style.css       样式（纸、墨、靛蓝、朱砂四个颜色都在最上面）
+│   ├─ fonts/          自托管的中文字体（霞鹜文楷 + Noto Serif SC，OFL）
 │   ├─ app.js          首页/照片墙/时间线的页面逻辑
 │   ├─ store.js        数据层：从后端读、往外写，连不上就退回静态内容
 │   ├─ ui.js           登录框、提示条、右上角账号
@@ -115,6 +116,7 @@ supabase/setup.sql         ← 一次性建库脚本（贴进 Supabase 的 SQL E
 supabase/migrations/       建表语句，改动请改这里再重新生成 setup.sql
 supabase/seed.sql          把现有内容搬进数据库
 tools/make_seed_sql.mjs    重新生成上面两个 seed 文件
+tools/fetch_fonts.py       重新抓字体（见下面「六」）
 ```
 
 ---
@@ -136,6 +138,32 @@ python tools/build_media.py
 
 **注意**：视频原样上传会很大（1 分钟 1080p 大约 60–200 MB），
 Supabase 免费额度是 1 GB 存储 / 5 GB 月流量。传之前最好先剪短、压到 720p。
+
+---
+
+## 六点五、字体（不用管，除非要换）
+
+站里的中文字体是**自托管**的，放在 `site/assets/fonts/`：
+
+| 用在哪 | 字体 | 许可 |
+|---|---|---|
+| 正文、标题 | Noto Serif SC | OFL |
+| 日期、署名、相纸批注 | 霞鹜文楷 LXGW WenKai | OFL |
+
+两份都是 OFL，可以随便自托管、商用。它们按 `unicode-range` 切成很多小片，
+浏览器只会下载页面真正用到的那几片（首页大概 1.4 MB，之后走缓存），
+而不是一次性拉几 MB。清单文件 `fonts.css` 是自动生成的，**别手改**。
+
+要重新抓（比如换字体版本）：
+
+```
+python tools/fetch_fonts.py --probe    # 先看看能找到什么
+python tools/fetch_fonts.py           # 下载并重新生成 fonts.css
+```
+
+`style.css` 顶部的 `--serif` / `--hand` 里排在前面的名字是自托管字体，
+后面挂着 `Kaiti SC` / `Songti SC` / `SimSun` 这些系统字体兜底 ——
+万一字体没下来，页面还是能看，只是少了手写味。
 
 ---
 

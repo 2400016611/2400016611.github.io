@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="我们的一点一滴，都写在这里。">
-<meta name="theme-color" content="#f7f5ef">
+<meta name="theme-color" content="#faf8f3">
 <title>见字如面 · 小孟 &amp; 琪琪</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://2400016611.github.io/">
 <meta property="og:title" content="见字如面 · 小孟 &amp; 琪琪">
@@ -38,9 +39,6 @@
     <span class="word">在一起</span>
     <span class="big" id="counter-days">0</span>
     <span class="unit">天</span>
-    <span class="seg" id="counter-hh">00</span><span class="unit">小时</span>
-    <span class="seg" id="counter-mm">00</span><span class="unit">分</span>
-    <span class="seg" id="counter-ss">00</span><span class="unit">秒</span>
     <span class="next" id="counter-next"></span>
   </div>
 
@@ -50,11 +48,14 @@
     <div class="year-grid" id="year-grid"></div>
     <div class="year-side">
       <div class="year-title">这一年</div>
-      <div class="legend">
-        <span><i class="wrote"></i>写了信</span>
-        <span><i class="met"></i>见面的日子</span>
-        <span><i class="blank"></i>空着</span>
-      </div>
+      <details class="legend-wrap">
+        <summary>怎么看</summary>
+        <div class="legend">
+          <span><i class="wrote"></i>写了信</span>
+          <span><i class="met"></i>见面的日子</span>
+          <span><i class="blank"></i>空着</span>
+        </div>
+      </details>
       <div class="readout" id="readout">点任意一天，看那天发生了什么</div>
     </div>
   </section>

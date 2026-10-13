@@ -75,18 +75,14 @@
     }).join("<span>·</span>") + next;
   }
 
-  /* ---------------- 实时计时 + 下一个纪念日 ---------------- */
+  /* ---------------- 在一起多少天 + 下一个纪念日 ---------------- */
   var tickerOn = false;
   function startTicker() {
     var big = $("#counter-days");
     if (!big) return;
-    var hh = $("#counter-hh");
-    var mm = $("#counter-mm");
-    var ss = $("#counter-ss");
     var nextEl = $("#counter-next");
-    var lastSecond = -1;
+    var lastDay = -1;
 
-    function two(n) { return (n < 10 ? "0" : "") + n; }
     function nextMilestone() {
       var start = midnight(parseDate(C.start));
       var today = midnight(new Date());
@@ -95,46 +91,29 @@
         var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + targets[i]);
         if (d > today) {
           var name = targets[i] === 365 ? "一周年" : "第 " + targets[i] + " 天";
-          return "距" + name + "还有 " + daysBetween(today, d) + " 天";
+          return name + " · 还有 " + daysBetween(today, d) + " 天";
         }
       }
       return "";
     }
 
-    function render(now) {
-      var start = midnight(parseDate(C.start));
-      var total = Math.floor((midnight(now) - start) / 1000);
-      var days = Math.floor(total / 86400);
-      var rest = total - days * 86400;
-      big.textContent = days;
-      if (hh) hh.textContent = two(Math.floor(rest / 3600));
-      if (mm) mm.textContent = two(Math.floor((rest % 3600) / 60));
-      if (ss) ss.textContent = two(rest % 60);
-    }
-
-    function frame() {
+    function render() {
       var now = new Date();
-      var second = Math.floor(now.getTime() / 1000);
-      if (second !== lastSecond) {
-        lastSecond = second;
-        render(now);
-      }
-      requestAnimationFrame(frame);
+      var start = midnight(parseDate(C.start));
+      var days = Math.floor((midnight(now) - start) / 86400000);   // 与全站口径一致：到今天为止过了多少天
+      if (days === lastDay) return;
+      lastDay = days;
+      big.textContent = days;
+      if (nextEl) nextEl.textContent = nextMilestone();
     }
 
-    if (nextEl) {
-      var label = nextMilestone();
-      nextEl.textContent = label;
-    }
-    render(new Date());
+    render();
     if (tickerOn) return; // 循环只开一次，之后每次重跑只刷新数字
     tickerOn = true;
-    requestAnimationFrame(frame);
-    setInterval(function () { render(new Date()); }, 1000);
-    window.addEventListener("focus", function () { render(new Date()); });
-    document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) render(new Date());
-    });
+    // 一封信不会在你手里走秒：不再每秒写一次 DOM，只在跨天（或回到窗口）时更新
+    setInterval(render, 30000);
+    window.addEventListener("focus", render);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
   }
 
   /* ---------------- 距离 ---------------- */
@@ -154,7 +133,15 @@
     if (!box) return;
     clear(box);
     var list = el("ul", "timeline");
+    var lastMonth = "";
     (C.milestones || []).forEach(function (m) {
+      // 月份眉标：一年读下来才有节奏，不然就是一串日期
+      var d = parseDate(m.date);
+      var monthKey = d.getFullYear() + "-" + (d.getMonth() + 1);
+      if (monthKey !== lastMonth) {
+        lastMonth = monthKey;
+        list.appendChild(el("li", "tl-month", (d.getMonth() + 1) + " 月"));
+      }
       var li = el("li", "tl-item");
       li.appendChild(el("div", "tl-date", m.dateText || m.date));
       li.appendChild(el("div", "tl-title", m.title));
@@ -167,6 +154,7 @@
           img.src = photoURL(photo.slug, "thumb");
           img.alt = m.title;
           img.loading = "lazy";
+          sizeTo(img, photo);
           fig.appendChild(img);
           fig.addEventListener("click", function () {
             lightbox.open(photoURL(photo.slug, "full"), (m.dateText || m.date) + " · " + m.title);
@@ -206,7 +194,7 @@
 
     if (pool.length === 1) {
       var only = el("img");
-      only.src = photoURL(pool[0].slug, "full");
+      only.src = photoURL(pool[0].slug, "thumb");
       only.classList.add("on");
       bg.appendChild(only);
       return;
@@ -222,15 +210,16 @@
       i = (i + 1) % pool.length;
       var incoming = i % 2 === 0 ? a : b;
       var outgoing = i % 2 === 0 ? b : a;
-      incoming.src = photoURL(pool[i].slug, "full");
+      // 压在 10% 不透明度下面，缩略图完全够用；换成大图只会白跑流量。
+      incoming.src = photoURL(pool[i].slug, "thumb");
       incoming.classList.add("on");
       outgoing.classList.remove("on");
       var preload = new Image();
-      preload.src = photoURL(pool[(i + 1) % pool.length].slug, "full");
+      preload.src = photoURL(pool[(i + 1) % pool.length].slug, "thumb");
     }
 
     show();
-    setInterval(show, 10000);
+    setInterval(show, 20000);
   }
 
   /* ---------------- 这一年 ---------------- */
@@ -310,12 +299,27 @@
   }
 
   /* ---------------- 相纸 ---------------- */
+  // 相纸在图片下载完之前也得先把位置占住，否则懒加载的那几张会缩成一条白边
+  function sizeTo(img, photo) {
+    if (photo && photo.w && photo.h) {
+      img.setAttribute("width", photo.w);
+      img.setAttribute("height", photo.h);
+    }
+    if (photo && photo.color) img.style.background = photo.color;
+  }
+
   function printFigure(photo, tilt, noteText, onOpen) {
-    var fig = el("figure", "print " + (tilt ? "tilt-l" : "tilt-r"));
+    var fig = el("figure", "print");
+    // 每张相纸歪多少度是随机的，只有左右倾向保留调用方的意思
+    var base = tilt ? -0.7 : 0.7;
+    var angle = base + (Math.random() * 0.9 - 0.45);
+    fig.style.transform = "rotate(" + angle.toFixed(2) + "deg)";
     var img = el("img");
     img.src = photoURL(photo.slug, "thumb");
     img.alt = noteText || "";
     img.loading = "lazy";
+    // 用素材里已经算好的主色当占位：图片是"显影"出来的，不是白闪
+    sizeTo(img, photo);
     fig.appendChild(img);
     if (noteText) fig.appendChild(el("figcaption", null, noteText));
     if (onOpen) {
@@ -357,80 +361,144 @@
     return fig;
   }
 
-  /* ---------------- 首页的两封信 ---------------- */
+  /* ---------------- 首页的信：按"日子"铺开 ---------------- */
+  // "9月6日 · 08:50" → 这一天是 9月6日，这封写在 08:50
+  function dayParts(dateText) {
+    var parts = String(dateText || "").split("·");
+    return {
+      day: (parts[0] || "").trim(),
+      time: (parts[1] || "").trim()
+    };
+  }
+
+  function letterCard(letter, lightbox) {
+    var art = el("article", "letter");
+    art.setAttribute("data-letter", letter.id || letter.legacyId || "");
+
+    var head = el("div", "letter-head");
+    var stamp = dayParts(letter.dateText).time;
+    if (stamp) head.appendChild(el("span", "date", stamp));
+    if (letter.title) head.appendChild(el("span", "letter-title", letter.title));
+    if (Store.state.signedIn && letter.id) {
+      var tools = el("span", "letter-tools");
+      var edit = el("a", "mini", "编辑");
+      edit.href = "write.html?id=" + encodeURIComponent(letter.id);
+      var del = el("button", "mini danger", "删除");
+      del.type = "button";
+      del.addEventListener("click", function () {
+        UI.confirm("删掉《" + (letter.title || letter.dateText) + "》这封信？", "删除").then(function (ok) {
+          if (!ok) return;
+          Store.deleteLetter(letter.id).then(function () {
+            UI.toast("删掉了");
+          }).catch(function (err) {
+            UI.toast(err.message || String(err), "bad");
+          });
+        });
+      });
+      tools.appendChild(edit);
+      tools.appendChild(del);
+      head.appendChild(tools);
+    }
+    art.appendChild(head);
+
+    var prints = el("div", "prints");
+    (letter.photos || []).forEach(function (slug, i) {
+      var photo = photoOf(slug);
+      if (!photo) return;
+      prints.appendChild(printFigure(photo, i % 2 === 0, note(C.photoNotes, slug), function () {
+        lightbox.open(photoURL(slug, "full"), note(C.photoNotes, slug), photo);
+      }));
+    });
+    (letter.videos || []).forEach(function (slug) {
+      var video = videoOf(slug);
+      if (!video) return;
+      prints.appendChild(videoFigure(video, (letter.photos || []).length % 2 === 1, note(C.videoNotes, slug), function () {
+        lightbox.openVideo(video.src_mp4, note(C.videoNotes, slug), video);
+      }));
+    });
+    art.appendChild(prints);
+
+    var body = el("div", "letter-body");
+    var keep = 4;   // 前四段留着，剩下的折起来
+    var rest = 0;
+    (letter.paragraphs || []).forEach(function (text, i) {
+      var p = el("p", "copy", text);
+      if (i >= keep) {
+        p.hidden = true;
+        p.classList.add("more-part");
+        rest += 1;
+      }
+      body.appendChild(p);
+    });
+    art.appendChild(body);
+
+    if (rest > 0) {
+      // 底部渐隐 + 一句手写体，而不是在正文中间插一行链接
+      art.classList.add("folded");
+      var more = el("button", "read-more", "翻开这封信");
+      more.type = "button";
+      more.addEventListener("click", function () {
+        Array.prototype.forEach.call(art.querySelectorAll(".more-part"), function (node) { node.hidden = false; });
+        art.classList.remove("folded");
+        more.remove();
+      });
+      art.appendChild(more);
+    }
+
+    art.appendChild(el("div", "sign", letter.sign));
+    return art;
+  }
+
   function renderLetters(lightbox) {
     var list = $("#letters");
     if (!list) return;
     clear(list);
+    if (!(C.letters || []).length) return;
 
+    // 同一天的两封信归到同一个"日子"下面
+    var byDate = {};
+    var order = [];
     (C.letters || []).forEach(function (letter) {
-      var art = el("article", "letter");
-      art.setAttribute("data-letter", letter.id || letter.legacyId || "");
-      var head = el("div", "letter-head");
-      head.appendChild(el("span", "date", letter.dateText));
-      if (letter.title) head.appendChild(el("span", "letter-title", letter.title));
-      head.appendChild(el("span", "who", letter.author + " 写"));
-      if (Store.state.signedIn && letter.id) {
-        var tools = el("span", "letter-tools");
-        var edit = el("a", "mini", "编辑");
-        edit.href = "write.html?id=" + encodeURIComponent(letter.id);
-        var del = el("button", "mini danger", "删除");
-        del.type = "button";
-        del.addEventListener("click", function () {
-          UI.confirm("删掉《" + (letter.title || letter.dateText) + "》这封信？", "删除").then(function (ok) {
-            if (!ok) return;
-            Store.deleteLetter(letter.id).then(function () {
-              UI.toast("删掉了");
-            }).catch(function (err) {
-              UI.toast(err.message || String(err), "bad");
-            });
-          });
-        });
-        tools.appendChild(edit);
-        tools.appendChild(del);
-        head.appendChild(tools);
+      var key = letter.date || dayParts(letter.dateText).day;
+      if (!byDate[key]) {
+        byDate[key] = [];
+        order.push(key);
       }
-      art.appendChild(head);
+      byDate[key].push(letter);
+    });
+    order.sort(function (a, b) { return a < b ? 1 : (a > b ? -1 : 0); });
 
-      var prints = el("div", "prints");
-      (letter.photos || []).forEach(function (slug, i) {
-        var photo = photoOf(slug);
-        if (!photo) return;
-        prints.appendChild(printFigure(photo, i % 2 === 0, note(C.photoNotes, slug), function () {
-          lightbox.open(photoURL(slug, "full"), note(C.photoNotes, slug), photo);
-        }));
-      });
-      (letter.videos || []).forEach(function (slug) {
-        var video = videoOf(slug);
-        if (!video) return;
-        prints.appendChild(videoFigure(video, (letter.photos || []).length % 2 === 1, note(C.videoNotes, slug), function () {
-          lightbox.openVideo(video.src_mp4, note(C.videoNotes, slug), video);
-        }));
-      });
-      art.appendChild(prints);
-
-      var paras = letter.paragraphs || [];
-      var rest = 0;
-      paras.forEach(function (text, i) {
-        var p = el("p", "copy", text);
-        if (i >= 3) {
-          p.hidden = true;
-          p.classList.add("more-part");
-          rest += 1;
-        }
-        art.appendChild(p);
-      });
-      if (rest > 0) {
-        var more = el("button", "read-more", "继续读（还有 " + rest + " 段）");
-        more.type = "button";
-        more.addEventListener("click", function () {
-          Array.prototype.forEach.call(art.querySelectorAll(".more-part"), function (node) { node.hidden = false; });
-          more.remove();
-        });
-        art.appendChild(more);
+    var newest = order[0];
+    order.forEach(function (key) {
+      var items = byDate[key];
+      var head = el("div", "day-head");
+      head.appendChild(el("span", "day-date", dayParts(items[0].dateText).day || key));
+      head.appendChild(el("span", "day-rule"));
+      var meta = "";
+      if (items.length > 1) {
+        meta = items[0].author === items[1].author ? "这天写了两封" : "这天我们各写了一封";
+      } else if (items[0].author) {
+        meta = items[0].author + " 写";
       }
-      art.appendChild(el("div", "sign", letter.sign));
-      list.appendChild(art);
+      if (meta) head.appendChild(el("span", "day-meta", meta));
+      list.appendChild(head);
+
+      if (key === newest) {
+        // 最近的一天完整铺开：这就是"桌上摊着的那一叠"
+        items.forEach(function (letter) { list.appendChild(letterCard(letter, lightbox)); });
+        return;
+      }
+      // 更早的日子收成一行，点开去时间线
+      items.forEach(function (letter) {
+        var row = el("div", "row");
+        var stamp = dayParts(letter.dateText).time;
+        if (stamp) row.appendChild(el("span", "row-date", stamp));
+        row.appendChild(el("span", "row-text", letter.title || (letter.paragraphs || [])[0] || "一封信"));
+        var open = el("a", "row-count", "读这封 →");
+        open.href = "timeline.html";
+        row.appendChild(open);
+        list.appendChild(row);
+      });
     });
   }
 
@@ -442,14 +510,20 @@
     (C.herPicks || []).forEach(function (slug) {
       var photo = photoOf(slug);
       if (!photo) return;
+      // 她的照片也用相纸：和信里的照片是同一套语言
+      var fig = el("figure", "print");
+      fig.style.transform = "rotate(" + (Math.random() * 1.6 - 0.8).toFixed(2) + "deg)";
+      fig.style.cursor = "zoom-in";
       var img = el("img");
       img.src = photoURL(slug, "thumb");
       img.alt = "琪琪";
       img.loading = "lazy";
-      img.addEventListener("click", function () {
+      sizeTo(img, photo);
+      fig.appendChild(img);
+      fig.addEventListener("click", function () {
         lightbox.open(photoURL(slug, "full"), note(C.photoNotes, slug, "琪琪"), photo);
       });
-      box.appendChild(img);
+      box.appendChild(fig);
     });
   }
 
@@ -489,6 +563,7 @@
     img.src = word ? word.src : "media/words/" + C.handwritten.photo + ".jpg";
     img.alt = C.handwritten.caption;
     img.loading = "lazy";
+    sizeTo(img, word);
     fig.appendChild(img);
     fig.appendChild(el("figcaption", null, C.handwritten.caption));
     fig.addEventListener("click", function () {
@@ -536,10 +611,11 @@
       if (item.kind === "photo") {
         img.src = item.record.thumb || item.record.full;
         img.alt = item.group === "her" ? "琪琪" : "我们";
-        img.style.background = item.record.color || "";
+        sizeTo(img, item.record);
       } else {
         img.src = item.record.poster || "";
         img.alt = note(C.videoNotes, item.record.key, "视频");
+        sizeTo(img, item.record);
       }
       tile.appendChild(img);
       if (item.kind === "video") {
